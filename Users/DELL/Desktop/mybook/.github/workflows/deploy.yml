@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main # Adjust this if your default branch is different
+      - master # Deploy from the master branch to gh-pages
 
 jobs:
   deploy:
@@ -23,4 +23,5 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./book/build # Docusaurus default build output directory, adjusted for book/ subdirectory
+          publish_dir: ./book/build # Docusaurus default build output directory, adjusted for book/subdirectory
+          publish_branch: gh-pages # Explicitly deploy to the gh-pages branch
