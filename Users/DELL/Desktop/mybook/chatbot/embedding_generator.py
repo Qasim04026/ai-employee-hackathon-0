@@ -24,8 +24,10 @@ class EmbeddingGenerator:
                 time.sleep(0.5)  # Add a small delay to avoid hitting rate limits
             return embeddings
         except Exception as e:
-            print(f"Error generating embeddings: {e}")
-            return []
+            import traceback
+        print(f"Error generating embeddings: {e}")
+        print(traceback.format_exc())    
+        return []
 
 if __name__ == "__main__":
     from dotenv import load_dotenv

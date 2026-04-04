@@ -24,7 +24,6 @@ CHAT_MODEL = os.getenv("CHAT_MODEL", "gemini-2.0-flash")
 if not all([QDRANT_URL, QDRANT_API_KEY, QDRANT_COLLECTION_NAME]):
     raise ValueError("Missing one or more environment variables.")
 
-# Initialize FastAPI app
 app = FastAPI()
 
 app.add_middleware(
@@ -35,7 +34,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize our components
 embedding_generator = EmbeddingGenerator()
 vector_store = VectorStore()
 
@@ -51,14 +49,19 @@ class IngestResponse(BaseModel):
     message: str
 
 def ingest_documents():
-    docs_path = "../book/docs/"
+    docs_path = "docs/"
+    print(f"Looking for docs at: {docs_path}")
+    print(f"Docs exists: {os.path.exists(docs_path)}")
     documents = read_markdown_files(docs_path)
+    print(f"Found {len(documents)} documents")
     chunks = chunk_content(documents)
+    print(f"Generated {len(chunks)} chunks")
 
     contents = [chunk["content"] for chunk in chunks]
     metadatas = [{"filepath": chunk["filepath"], "start_token": chunk["start_token"], "end_token": chunk["end_token"]} for chunk in chunks]
 
     embeddings = embedding_generator.generate_embeddings(contents)
+    print(f"Generated {len(embeddings)} embeddings")
 
     if not embeddings:
         raise Exception("Failed to generate embeddings for documents.")
@@ -93,11 +96,11 @@ async def chat_with_bot(request: ChatRequest):
     sources = [f"{hit.get('filepath', '')}#L{hit.get('start_token', '')}-L{hit.get('end_token', '')}" for hit in search_result]
 
     context_str = "\n\n".join(context_chunks)
-    time.sleep(3)      
+    time.sleep(3)
 
     response = client.models.generate_content(
         model=CHAT_MODEL,
-        contents=f"You are a helpful AI assistant for a Physical AI Robotics textbook. Only answer questions related to the book content. If someone greets you, greet back briefly. Keep answers concise and clear.\n\nContext: {context_str}\n\nQuestion: {request.question}"
+        contents=f"You are a helpful AI assistant for a Physical AI Robotics textbook. Only answer questions related to the book content. If someone greets you, greet back briefly. Keep answers concise and clear. If the user's question is in Roman Urdu or Urdu script, please respond in the same language.\n\nContext: {context_str}\n\nQuestion: {request.question}"
     )
 
     answer = response.text
