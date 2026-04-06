@@ -104,7 +104,7 @@ async def chat_with_bot(request: ChatRequest):
     answer = response.text
             # Remove sources section if present
     if "Sources:" in answer:
-        answer = answer[:answer.index("Sources:")].strip()
+        answer = answer[lower_answer.index("Sources:")].strip()
     if "sources:" in answer.lower():
         lower_answer = answer.lower()
     return ChatResponse(answer=answer)
