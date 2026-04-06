@@ -98,13 +98,24 @@ async def chat_with_bot(request: ChatRequest):
 
     response = client.models.generate_content(
         model=CHAT_MODEL,
-        contents=f"You are a helpful AI assistant for a Physical AI Robotics textbook. Only answer questions related to the book content. NEVER include file paths or sources in your response. ABSOLUTELY NO SOURCES SECTION. If someone greets you, greet back briefly. Keep answers concise and clear. If the user's question is in Roman Urdu, respond in Roman Urdu only. If the user's question is in Urdu script (Arabic characters), respond in Urdu script only. Ensure the entire response, including greetings, is in the same script as the question.\n\nContext: {context_str}\n\nQuestion: {request.question}"
-    )
+        contents="DO NOT include any Sources, file paths, or references in your response under any circumstances. "
+    "You are a helpful AI assistant for a Physical AI Robotics textbook. "
+    "Only answer questions related to the book content. "
+    "NEVER include file paths or sources in your response. "
+    "ABSOLUTELY NO SOURCES SECTION. "
+    "If someone greets you, greet back briefly. "
+    "Keep answers concise and clear. "
+    "If the user's question is in Roman Urdu, respond in Roman Urdu only. "
+    "If the user's question is in Urdu script (Arabic characters), respond in Urdu script only. "
+    "Ensure the entire response, including greetings, is in the same script as the question.\n\n"
+    f"Context: {context_str}\n\nQuestion: {request.question}"
+)
 
     answer = response.text
             # Remove sources section if present
     if "Sources:" in answer:
         answer = answer[lower_answer.index("Sources:")].strip()
+        
     if "sources:" in answer.lower():
         lower_answer = answer.lower()
     return ChatResponse(answer=answer)
