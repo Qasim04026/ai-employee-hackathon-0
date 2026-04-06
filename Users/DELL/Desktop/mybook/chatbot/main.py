@@ -43,7 +43,6 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     answer: str
-    sources: List[str]
 
 class IngestResponse(BaseModel):
     message: str
@@ -93,18 +92,17 @@ async def chat_with_bot(request: ChatRequest):
     search_result = vector_store.search_vectors(query_embedding)
 
     context_chunks = [hit["content"] for hit in search_result]
-    sources = [f"{hit.get('filepath', '')}#L{hit.get('start_token', '')}-L{hit.get('end_token', '')}" for hit in search_result]
 
     context_str = "\n\n".join(context_chunks)
     time.sleep(3)
 
     response = client.models.generate_content(
         model=CHAT_MODEL,
-        contents=f"You are a helpful AI assistant for a Physical AI Robotics textbook. Only answer questions related to the book content. If someone greets you, greet back briefly. Keep answers concise and clear. If the user's question is in Roman Urdu or Urdu script, please respond in the same language.\n\nContext: {context_str}\n\nQuestion: {request.question}"
+        contents=f"You are a helpful AI assistant for a Physical AI Robotics textbook. Only answer questions related to the book content. Do not include file paths or sources in your response. If someone greets you, greet back briefly. Keep answers concise and clear. If the user's question is in Roman Urdu, respond in Roman Urdu only. If the user's question is in Urdu script (Arabic characters), respond in Urdu script only.\n\nContext: {context_str}\n\nQuestion: {request.question}"
     )
 
     answer = response.text
-    return ChatResponse(answer=answer, sources=sources)
+    return ChatResponse(answer=answer)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
