@@ -92,6 +92,7 @@ async def chat_with_bot(request: ChatRequest):
     search_result = vector_store.search_vectors(query_embedding)
 
     context_chunks = [hit["content"] for hit in search_result]
+    sources = [f"{hit.get('filepath', '')}#L{hit.get('start_token', '')}-L{hit.get('end_token', '')}" for hit in search_result]
 
     context_str = "\n\n".join(context_chunks)
     time.sleep(3)
@@ -109,15 +110,8 @@ async def chat_with_bot(request: ChatRequest):
     "If the user's question is in Urdu script (Arabic characters), respond in Urdu script only. "
     "Ensure the entire response, including greetings, is in the same script as the question.\n\n"
     f"Context: {context_str}\n\nQuestion: {request.question}"
-)
-
+    )
     answer = response.text
-            # Remove sources section if present
-    if "Sources:" in answer:
-        answer = answer[lower_answer.index("Sources:")].strip()
-        
-    if "sources:" in answer.lower():
-        lower_answer = answer.lower()
     return ChatResponse(answer=answer)
 
 if __name__ == "__main__":
