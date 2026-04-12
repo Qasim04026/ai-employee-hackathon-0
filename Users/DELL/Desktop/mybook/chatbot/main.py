@@ -10,6 +10,7 @@ from document_processor import read_markdown_files, chunk_content
 from embedding_generator import EmbeddingGenerator
 from vector_store import VectorStore
 from typing import List, Optional
+from collections import deque
 
 # Load environment variables
 load_dotenv()
@@ -20,6 +21,9 @@ QDRANT_URL = os.getenv("QDRANT_URL")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 QDRANT_COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME")
 CHAT_MODEL = os.getenv("CHAT_MODEL", "gemini-2.0-flash")
+
+# Initialize conversation history
+chat_history = deque(maxlen=10) # Stores up to 10 messages (5 turns)
 
 if not all([QDRANT_URL, QDRANT_API_KEY, QDRANT_COLLECTION_NAME]):
     raise ValueError("Missing one or more environment variables.")
@@ -97,21 +101,39 @@ async def chat_with_bot(request: ChatRequest):
     context_str = "\n\n".join(context_chunks)
     time.sleep(3)
 
+    # Prepare messages for Gemini, including history
+    gemini_messages = []
+    for i, message in enumerate(chat_history):
+        if i % 2 == 0: # User message
+            gemini_messages.append({"role": "user", "parts": [message]})
+        else: # Model message
+            gemini_messages.append({"role": "model", "parts": [message]})
+
+    # Add current user question with system instructions and context
+    gemini_messages.append({"role": "user", "parts": [
+        "DO NOT include any Sources, file paths, or references in your response under any circumstances. "
+        "You are a helpful AI assistant for a Physical AI Robotics textbook. "
+        "Only answer questions related to the book content. "
+        "NEVER include file paths or sources in your response. "
+        "ABSOLUTELY NO SOURCES SECTION. "
+        "If someone greets you, greet back briefly. "
+        "Keep answers concise and clear. "
+        "If the user's question is in Roman Urdu, respond in Roman Urdu only. "
+        "If the user's question is in Urdu script (Arabic characters), respond in Urdu script only. "
+        "Ensure the entire response, including greetings, is in the same script as the question.\n\n"
+        f"Context: {context_str}\n\nQuestion: {request.question}"
+    ]})
+
     response = client.models.generate_content(
         model=CHAT_MODEL,
-        contents="DO NOT include any Sources, file paths, or references in your response under any circumstances. "
-    "You are a helpful AI assistant for a Physical AI Robotics textbook. "
-    "Only answer questions related to the book content. "
-    "NEVER include file paths or sources in your response. "
-    "ABSOLUTELY NO SOURCES SECTION. "
-    "If someone greets you, greet back briefly. "
-    "Keep answers concise and clear. "
-    "If the user's question is in Roman Urdu, respond in Roman Urdu only. "
-    "If the user's question is in Urdu script (Arabic characters), respond in Urdu script only. "
-    "Ensure the entire response, including greetings, is in the same script as the question.\n\n"
-    f"Context: {context_str}\n\nQuestion: {request.question}"
+        contents=gemini_messages # Pass the prepared messages
     )
     answer = response.text
+
+    # Update chat history
+    chat_history.append(request.question)
+    chat_history.append(answer)
+
     return ChatResponse(answer=answer)
 
 if __name__ == "__main__":
